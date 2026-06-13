@@ -1,13 +1,9 @@
-package com.goutam.razorpay.merchant.Entity;
+package com.goutam.razorpay.merchant.entity;
 
 import com.goutam.razorpay.common.enums.BusinessType;
 import com.goutam.razorpay.common.enums.MerchantStatus;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.util.UUID;
 import jakarta.persistence.*;

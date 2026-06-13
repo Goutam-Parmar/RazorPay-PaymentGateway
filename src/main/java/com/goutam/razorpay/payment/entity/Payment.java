@@ -1,4 +1,4 @@
-package com.goutam.razorpay.payment.Entity;
+package com.goutam.razorpay.payment.entity;
 
 
 import com.goutam.razorpay.common.entity.Money;

@@ -1,4 +1,4 @@
-package com.goutam.razorpay.merchant.Entity;
+package com.goutam.razorpay.merchant.entity;
 
 import jakarta.persistence.*;
 
