@@ -7,8 +7,15 @@ import jakarta.persistence.Table;
 
 import java.util.UUID;
 import jakarta.persistence.*;
+import lombok.*;
+
 @Entity
 @Table(name = "merchant")
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class Merchant {
 
     @Id
