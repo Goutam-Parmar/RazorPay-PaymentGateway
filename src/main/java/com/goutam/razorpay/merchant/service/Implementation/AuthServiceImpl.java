@@ -2,6 +2,7 @@ package com.goutam.razorpay.merchant.service.Implementation;
 
 import com.goutam.razorpay.common.enums.MerchantStatus;
 import com.goutam.razorpay.common.enums.UserRole;
+import com.goutam.razorpay.common.exception.DuplicateResourceException;
 import com.goutam.razorpay.merchant.dto.request.MerchantSignupRequestDto;
 import com.goutam.razorpay.merchant.dto.response.MerchantResponseDto;
 import com.goutam.razorpay.merchant.entity.AppUser;
@@ -22,9 +23,10 @@ public class AuthServiceImpl implements AuthService {
     private final MerchantRepository merchantRepository;
     @Override
     public MerchantResponseDto signup(MerchantSignupRequestDto request) {
-        if (merchantRepository.existsByEmail(request.email())){
-           throw new RuntimeException("Merchant with email already exists"+request.email());
-       }
+        if (merchantRepository.existsByEmail(request.email())) {
+            throw new DuplicateResourceException("DUPLICATE_MERCHANT_EMAIL",
+                    "Merchant with email already exists: " + request.email());
+        }
 
         Merchant merchant = Merchant.builder()
                 .name(request.name())
