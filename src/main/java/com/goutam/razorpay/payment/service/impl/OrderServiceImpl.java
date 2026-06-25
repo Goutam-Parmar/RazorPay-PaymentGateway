@@ -25,7 +25,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
    public OrderResponseDto create(UUID merchantId, OrderRequestDto request) {
-        if(request.receipt()!=null || orderRepository.existsByMerchantIdAndReceipt(merchantId, request.receipt())){
+        if(request.receipt()!=null && orderRepository.existsByMerchantIdAndReceipt(merchantId, request.receipt())){
             throw new DuplicateResourceException("ORDER_RECEIPT_DUPLICATE","Order with this receipt already exists for the merchant "+request.receipt());
         }
 
