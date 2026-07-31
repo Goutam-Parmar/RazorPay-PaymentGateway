@@ -9,6 +9,7 @@ import com.goutam.razorpay.payment.dto.ResponseDto.OrderResponseDto;
 import com.goutam.razorpay.payment.dto.ResponseDto.PaymentResponseDto;
 import com.goutam.razorpay.payment.entity.OrderRecord;
 import com.goutam.razorpay.payment.entity.Payment;
+import com.goutam.razorpay.payment.mapper.OrderMapper;
 import com.goutam.razorpay.payment.mapper.PaymentMapper;
 import com.goutam.razorpay.payment.repository.OrderRepository;
 import com.goutam.razorpay.payment.repository.PaymentRepository;
@@ -32,12 +33,13 @@ public class OrderServiceImpl implements OrderService {
     private  final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
+    private final OrderMapper orderMapper;
 
     @Value("${payment.order.default-order-expiry-minutes:30}")
     private int defaultOrderExpiryMinutes;
 
     @Override
-   public OrderResponseDto create(UUID merchantId, OrderRequestDto request) {
+   public OrderResponseDto  create(UUID merchantId, OrderRequestDto request) {
         if(request.receipt()!=null && orderRepository.existsByMerchantIdAndReceipt(merchantId, request.receipt())){
             throw new DuplicateResourceException("ORDER_RECEIPT_DUPLICATE","Order with this receipt already exists for the merchant "+request.receipt());
         }
@@ -56,12 +58,7 @@ public class OrderServiceImpl implements OrderService {
         order = orderRepository.save(order);
         // TODO:        publish kafka event about order creation
 
-        return new OrderResponseDto(order.getId(),
-                order.getMerchantId(),
-                order.getReceipt(), order.getAmount(),
-                order.getOrderStatus(), order.getAttempts(),
-                order.getNotes(), order.getExpiresAt(),
-                null);
+        return orderMapper.toResponse(order);
     }
 
     @Override
@@ -69,12 +66,7 @@ public class OrderServiceImpl implements OrderService {
         OrderRecord order =  orderRepository.findByIdAndMerchantId(orderId ,merchantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found ", orderId));
 
-        return new OrderResponseDto(order.getId(),
-                order.getMerchantId(),
-                order.getReceipt(), order.getAmount(),
-                order.getOrderStatus(), order.getAttempts(),
-                order.getNotes(), order.getExpiresAt(),
-                null);
+        return orderMapper.toResponse(order);
     }
 
     @Override
@@ -90,12 +82,7 @@ public class OrderServiceImpl implements OrderService {
         order.setOrderStatus(OrderStatus.CANCELLED);
         order = orderRepository.save(order);
 
-        return new OrderResponseDto(order.getId(),
-                order.getMerchantId(),
-                order.getReceipt(), order.getAmount(),
-                order.getOrderStatus(), order.getAttempts(),
-                order.getNotes(), order.getExpiresAt(),
-                null);
+        return orderMapper.toResponse(order);
     }
 
     @Override
