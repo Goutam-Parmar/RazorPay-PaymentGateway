@@ -1,6 +1,7 @@
 package com.goutam.razorpay.payment.entity;
 
 
+import com.goutam.razorpay.common.entity.BaseEntity;
 import com.goutam.razorpay.common.entity.Money;
 import com.goutam.razorpay.common.enums.PaymentMethod;
 import com.goutam.razorpay.common.enums.PaymentStatus;
@@ -14,13 +15,18 @@ import java.util.Map;
 import java.util.UUID;
 
 @Entity
-@Table(name = "payments")
+@Table(name = "payments",
+        indexes = {
+                @Index(name = "idx_payment_order_id", columnList = "order_id"),
+                @Index(name = "idx_payment_merchant_id", columnList = "merchant_id"),
+                @Index(name = "idx_payment_status", columnList = "status")
+        })
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Payment {
+public class Payment extends BaseEntity {
     @Id
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.UUID)
     private UUID id;

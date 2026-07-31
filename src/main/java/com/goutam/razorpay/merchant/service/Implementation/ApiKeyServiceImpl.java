@@ -7,6 +7,7 @@ import com.goutam.razorpay.merchant.dto.response.ApiKeyCreateResponseDto;
 import com.goutam.razorpay.merchant.dto.response.ApiKeyResponseDto;
 import com.goutam.razorpay.merchant.entity.APIKEY;
 import com.goutam.razorpay.merchant.entity.Merchant;
+import com.goutam.razorpay.merchant.mapper.APIKeyMapper;
 import com.goutam.razorpay.merchant.repository.ApiKeyRepository;
 import com.goutam.razorpay.merchant.repository.MerchantRepository;
 import com.goutam.razorpay.merchant.service.ApiKeyService;
@@ -28,6 +29,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 
     private final MerchantRepository merchantRepository;
     private final ApiKeyRepository apiKeyRepository;
+    private final APIKeyMapper apiKeyMapper;
 
     @Override
     @Transactional

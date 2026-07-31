@@ -7,6 +7,7 @@ import com.goutam.razorpay.merchant.dto.request.MerchantSignupRequestDto;
 import com.goutam.razorpay.merchant.dto.response.MerchantResponseDto;
 import com.goutam.razorpay.merchant.entity.AppUser;
 import com.goutam.razorpay.merchant.entity.Merchant;
+import com.goutam.razorpay.merchant.mapper.MerchantMapper;
 import com.goutam.razorpay.merchant.repository.AppUserRepository;
 import com.goutam.razorpay.merchant.repository.MerchantRepository;
 import com.goutam.razorpay.merchant.service.AuthService;
@@ -21,6 +22,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final AppUserRepository appUserRepository;
     private final MerchantRepository merchantRepository;
+    private final MerchantMapper merchantMapper;
     @Override
     public MerchantResponseDto signup(MerchantSignupRequestDto request) {
         if (merchantRepository.existsByEmail(request.email())) {
@@ -28,14 +30,8 @@ public class AuthServiceImpl implements AuthService {
                     "Merchant with email already exists: " + request.email());
         }
 
-        Merchant merchant = Merchant.builder()
-                .name(request.name())
-                .email(request.email())
-                .businessName(request.businessName())
-                .businessType(request.businessType())
-                .status(MerchantStatus.PENDINGKYC)
-                .build();
-
+        Merchant merchant = merchantMapper.toEntityFromSignupRequestDto(request);
+       merchant.setStatus(MerchantStatus.PENDINGKYC);
        merchant = merchantRepository.save(merchant);
 
        AppUser appUser = AppUser.builder()
@@ -45,8 +41,6 @@ public class AuthServiceImpl implements AuthService {
                .role(UserRole.OWNER)
                .build();
        appUserRepository.save(appUser);
-        return new MerchantResponseDto(merchant.getId(), merchant.getName(),
-                merchant.getEmail(), merchant.getBusinessName(),
-                merchant.getBusinessType(), merchant.getStatus());
+        return merchantMapper.toResponseDto(merchant);
     }
 }
