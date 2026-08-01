@@ -1,0 +1,26 @@
+package com.goutam.razorpay.payment.gateway;
+
+import com.goutam.razorpay.common.enums.PaymentMethod;
+import com.goutam.razorpay.payment.gateway.dto.PaymentRequest;
+import com.goutam.razorpay.payment.gateway.dto.PaymentResultDto;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+
+@Component
+@RequiredArgsConstructor
+public class PaymentGatewayRouter {
+
+
+    private final Map<PaymentMethod, PaymentAdapter> paymentAdapterMap;
+   public PaymentResultDto initiate(PaymentRequest request){
+
+       PaymentAdapter adapter = paymentAdapterMap.get(request.method());
+       if(adapter == null){
+           throw new IllegalArgumentException("No payment adapter register  for payment method: " + request.method());
+       }
+      return adapter.initiate(request);
+
+    }
+}
