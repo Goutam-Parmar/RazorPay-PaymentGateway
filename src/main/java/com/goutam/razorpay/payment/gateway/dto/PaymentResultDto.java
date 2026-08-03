@@ -1,7 +1,7 @@
 package com.goutam.razorpay.payment.gateway.dto;
 
 public sealed interface PaymentResultDto permits
-       // PaymentResultDto.Success,
+        PaymentResultDto.Success,
         PaymentResultDto.Pending,
         PaymentResultDto.Failure {
 
@@ -9,5 +9,5 @@ public sealed interface PaymentResultDto permits
 
     record Failure(String errorCode, String errorDescription) implements PaymentResultDto {}
 
-    //record Success(String processorReference, String bankReference) implements PaymentResultDto {}
+    record Success(String bankReference) implements PaymentResultDto {}
 }
