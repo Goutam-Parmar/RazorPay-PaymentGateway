@@ -24,9 +24,9 @@ public class UpiPaymentProcessor implements PaymentProcessor {
 
         String processorRef = "NBK_PROCESSOR_" + RandomizerUtil.randomBase64(16);
 
-        String redirectUrl = "https://bank.com/redirect?processorRef=" + processorRef;
+        //String redirectUrl = "https://bank.com/redirect?processorRef=" + processorRef;
 
-        return new PaymentProcessorResponseDto.Success(processorRef,redirectUrl);
+        return new PaymentProcessorResponseDto.Pending(processorRef);
 
 
     }
