@@ -1,10 +1,7 @@
 package com.goutam.razorpay.vault.dto.request;
 
 import com.goutam.razorpay.vault.Validator.ExpiryYear;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.*;
 import org.hibernate.validator.constraints.LuhnCheck;
 
 import java.util.UUID;
@@ -20,15 +17,20 @@ public record TokenizeRequest(
         @Pattern(regexp = "^[0-9]{3,4}$", message = "CVV must be 3 or 4 digits")
         String cvv,
 
-        @NotNull(message = "Expiry Month is Required")
-        @Min(value = 1, message = "Expiry must be between 1 to 12 ")
-        @Max(value = 12,message = "Expiry must be between 1-12")
-        String expiryMonth,
 
-        @NotNull(message = "Expiry Year is Required")
+        @NotNull(message = "Expiry month is required")
+        @Min(value = 1, message = "Expiry must be between 1 to 12")
+        @Max(value = 12, message = "Expiry must be between 1 to 12")
+        Integer expiryMonth,
+
+        @NotNull(message = "Expiry year is required")
         @ExpiryYear
-        String expiryYear,
+        Integer expiryYear,
 
-        UUID customerId
+
+        UUID customerId,
+
+        @Size(min=3, message = "Card Holder Name must be at least 3 characters")
+        String cardHolderName
 ) {
 }

@@ -1,5 +1,6 @@
 package com.goutam.razorpay.payment.service.impl;
 
+import com.goutam.razorpay.common.enums.EventAggregateType;
 import com.goutam.razorpay.common.enums.OrderStatus;
 import com.goutam.razorpay.common.enums.PaymentEvent;
 import com.goutam.razorpay.common.enums.PaymentStatus;
@@ -13,6 +14,7 @@ import com.goutam.razorpay.payment.gateway.PaymentGatewayRouter;
 import com.goutam.razorpay.payment.gateway.dto.PaymentRequest;
 import com.goutam.razorpay.payment.gateway.dto.PaymentResultDto;
 import com.goutam.razorpay.payment.mapper.PaymentMapper;
+import com.goutam.razorpay.payment.outbox.OutboxEventPublisher;
 import com.goutam.razorpay.payment.repository.OrderRepository;
 import com.goutam.razorpay.payment.repository.PaymentRepository;
 import com.goutam.razorpay.payment.service.PaymentService;
@@ -23,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 @Service
 @Slf4j
@@ -35,6 +38,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentGatewayRouter paymentGatewayRouter;
     private final PaymentMapper paymentMapper;
     private final PaymentTransitionService paymentTransitionService;
+    private final OutboxEventPublisher eventPublisher;
 
     @Transactional
     @Override
@@ -119,5 +123,66 @@ public class PaymentServiceImpl implements PaymentService {
 
         // TODO :send an outbox(kafka event)
         return paymentMapper.toResponse(paymentRepository.save(payment));
+    }
+
+
+
+
+
+    @Override
+    @Transactional
+    public void resolveAuthorization(UUID paymentId, boolean approve,
+                                     String bankRef, String errorCode, String errorDescription) {
+
+//        Payment payment = paymentRepository.findById(paymentId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId));
+
+        Payment payment = paymentRepository.findByIdForUpdate(paymentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId));
+
+        if (payment.getStatus() != PaymentStatus.AUTHORIZING) {
+            log.warn("Payment is not in Authorizing state, paymentID: {}, status: {}", paymentId, payment.getStatus());
+            return;
+        }
+
+        OrderRecord orderRecord = payment.getOrder();
+
+        if (approve) {
+            paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_SUCCESS);
+            payment.setBankReference(bankRef);
+            payment.setAuthorizedAt(LocalDateTime.now());
+
+            // Auto-capture
+            paymentTransitionService.apply(payment, PaymentEvent.CAPTURE_REQUEST);
+            PaymentResultDto captureResult = paymentGatewayRouter.capture(payment.getMethod(), paymentId);
+
+            if(captureResult instanceof PaymentResultDto.Success success) {
+                paymentTransitionService.apply(payment, PaymentEvent.CAPTURE_SUCCESS);
+                payment.setCapturedAt(LocalDateTime.now());
+                orderRecord.setOrderStatus(OrderStatus.PAID);
+            } else if (captureResult instanceof  PaymentResultDto.Failure failure){
+                paymentTransitionService.apply(payment, PaymentEvent.CAPTURE_FAIL);
+                payment.setErrorCode(failure.errorCode());
+                payment.setErrorDescription(failure.errorDescription());
+            }
+        } else {
+            paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_FAIL);
+            payment.setErrorCode(errorCode);
+            payment.setErrorDescription(errorDescription);
+        }
+
+        paymentRepository.save(payment);
+        orderRepository.save(orderRecord);
+
+        eventPublisher.publish(EventAggregateType.PAYMENT, payment.getId(), "PAYMENT_STATUS_CHANGED",
+                Map.of("orderId", payment.getOrder().getId().toString(),
+                        "paymentId", payment.getId().toString(),
+                        "merchantId", payment.getMerchantId().toString(),
+                        "paymentStatus", payment.getStatus().name(),
+                        "amountUnits", payment.getAmount().getAmountUnits(),
+                        "amountCurrency", payment.getAmount().getCurrency(),
+                        "paymentMethod", payment.getMethod()
+                )
+        );
     }
 }
