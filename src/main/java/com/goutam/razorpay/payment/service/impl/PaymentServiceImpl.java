@@ -60,6 +60,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .amount(order.getAmount())
                 .status(PaymentStatus.CREATED)
                 .method(request.method())
+                .idempotencyKey(UUID.randomUUID().toString())
                 .methodDetails(request.methodDetails())
                 .build();
 
@@ -73,6 +74,7 @@ public class PaymentServiceImpl implements PaymentService {
                 request.method(),
                 request.methodDetails()
         );
+        paymentTransitionService.apply(payment, PaymentEvent.AUTHORIZE_ATTEMPT);
       PaymentResultDto result =  paymentGatewayRouter.initiate(paymentRequest);
 
   switch (result){
