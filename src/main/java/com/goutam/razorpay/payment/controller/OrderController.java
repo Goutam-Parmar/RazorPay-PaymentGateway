@@ -22,8 +22,8 @@ public class OrderController {
 
 
     private final OrderService OrderService;
-
-    UUID MerchantId = UUID.fromString("dfdcea94-eacd-4d01-b47c-f0af1be9a044"); //TODO:  Replace with actual merchant ID
+    UUID MerchantId = UUID.fromString("dfdcea94-eacd-4d01-b47c-f0af1be9a044");
+   // UUID MerchantId = UUID.fromString("52b42879-68e8-4c5f-a75b-eb9ceeb683e2"); //TODO:  Replace with actual merchant ID
     @PostMapping
     public ResponseEntity<OrderResponseDto> createOrder(@Valid @RequestBody OrderRequestDto request) {
 return ResponseEntity.status(HttpStatus.CREATED)
