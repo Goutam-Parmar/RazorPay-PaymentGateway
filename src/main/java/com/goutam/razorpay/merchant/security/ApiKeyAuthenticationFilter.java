@@ -1,5 +1,7 @@
 package com.goutam.razorpay.merchant.security;
 
+import com.goutam.razorpay.merchant.cache.ApiKeyCache;
+import com.goutam.razorpay.merchant.cache.ApiKeyCacheEntry;
 import com.goutam.razorpay.merchant.entity.APIKEY;
 import com.goutam.razorpay.merchant.repository.ApiKeyRepository;
 import jakarta.servlet.FilterChain;
@@ -38,8 +40,7 @@ public class ApiKeyAuthenticationFilter  extends OncePerRequestFilter {
     private final MerchantContext merchantContext;
     private final HandlerExceptionResolver handlerExceptionResolver;
     private final BCryptPasswordEncoder BCRYPT = new BCryptPasswordEncoder();
-
-
+    private final ApiKeyCache apiKeyCache;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -58,15 +59,15 @@ public class ApiKeyAuthenticationFilter  extends OncePerRequestFilter {
 
             String keyId = credentials[0];
             String rawSecret = credentials[1];
-            log.info("KEY ID = [{}]", keyId);
-            log.info("KEY ID LENGTH = {}", keyId.length());
-            log.info("FIRST CHAR ASCII = {}", (int) keyId.charAt(0));
 
-            log.info("SECRET LENGTH = {}", rawSecret.length());
-            APIKEY apikey = apiKeyRepository.findByKeyId(keyId)
-                    .orElseThrow(() -> new BadCredentialsException("Missing API Key"));
 
-            if (!apikey.isEnabled() || !secretMatches(rawSecret, apikey)) {
+            ApiKeyCacheEntry apiKeyEntry = apiKeyCache.get(keyId)
+                    .orElseGet(() -> loadAndCache(keyId));
+
+//            APIKEY apikey = apiKeyRepository.findByKeyId(keyId)
+//                    .orElseThrow(() -> new BadCredentialsException("Missing API Key"));
+
+            if (apiKeyEntry==null ||!apiKeyEntry.enabled() || !secretMatches(rawSecret, apiKeyEntry)) {
                 throw new BadRequestException("Invalid or Missing api Key");
             }
 
@@ -77,8 +78,8 @@ public class ApiKeyAuthenticationFilter  extends OncePerRequestFilter {
 
             SecurityContextHolder.getContext().setAuthentication(auth);
 
-            merchantContext.setMerchantId(apikey.getMerchant().getId());
-            merchantContext.setKeyId(apikey.getKeyId());
+            merchantContext.setMerchantId(apiKeyEntry.merchantId());
+            merchantContext.setKeyId(apiKeyEntry.keyId());
 
             filterChain.doFilter(request, response);
         }catch (Exception e){
@@ -86,16 +87,28 @@ public class ApiKeyAuthenticationFilter  extends OncePerRequestFilter {
         }
 
     }
-
-    private boolean secretMatches(String rawSecret, APIKEY apiKey) {
-        if (BCRYPT.matches(rawSecret, apiKey.getKeySecretHash())) {
+    private ApiKeyCacheEntry loadAndCache(String keyId) {
+        APIKEY apiKey = apiKeyRepository.findByKeyId(keyId).orElse(null);
+        if (apiKey == null) return null;
+        ApiKeyCacheEntry apiKeyCacheEntry = new ApiKeyCacheEntry(
+                apiKey.getKeyId(),
+                apiKey.getKeySecretHash(),
+                apiKey.getPreviousKeySecretHash(),
+                apiKey.getGracePeriodExpiresAt(),
+                apiKey.getMerchant().getId(),
+                apiKey.getEnvironment(),
+                apiKey.isEnabled()
+        );
+        apiKeyCache.put(keyId, apiKeyCacheEntry);
+        return apiKeyCacheEntry;
+    }
+    private boolean secretMatches(String rawSecret, ApiKeyCacheEntry apiKey) {
+        if (BCRYPT.matches(rawSecret, apiKey.keySecretHash())) {
             return true;
         }
-        boolean isInGracePeriod = apiKey.getGracePeriodExpiresAt() !=null
-                && LocalDateTime.now().isBefore(apiKey.getGracePeriodExpiresAt());
 
-        return isInGracePeriod && apiKey.getPreviousKeySecretHash() !=null
-                && BCRYPT.matches(rawSecret, apiKey.getPreviousKeySecretHash());
+        return apiKey.isInGracePeriod() && apiKey.previousKeySecretHash() !=null
+                && BCRYPT.matches(rawSecret, apiKey.previousKeySecretHash());
     }
     private String[] decode(String header) {
         String encoded = header.substring(BASIC_PREFIX.length());

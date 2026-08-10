@@ -2,6 +2,7 @@ package com.goutam.razorpay.merchant.service.Implementation;
 
 import com.goutam.razorpay.common.exception.ResourceNotFoundException;
 import com.goutam.razorpay.common.util.RandomizerUtil;
+import com.goutam.razorpay.merchant.cache.ApiKeyCache;
 import com.goutam.razorpay.merchant.dto.request.CreateApiKeyRequestDto;
 import com.goutam.razorpay.merchant.dto.response.ApiKeyCreateResponseDto;
 import com.goutam.razorpay.merchant.dto.response.ApiKeyResponseDto;
@@ -32,6 +33,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
     private final ApiKeyRepository apiKeyRepository;
     private final APIKeyMapper apiKeyMapper;
     private  final BCryptPasswordEncoder BCRYPT = new BCryptPasswordEncoder();
+    private final ApiKeyCache apiKeyCache;
 
     @Override
     @Transactional
@@ -67,6 +69,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
                 .orElseThrow(() -> new ResourceNotFoundException("ApiKey", keyId));
 
         key.setEnabled(false);
+        apiKeyCache.evict(key.getKeyId());
     }
 
     @Override
@@ -86,6 +89,8 @@ public class ApiKeyServiceImpl implements ApiKeyService {
         apiKey.setGracePeriodExpiresAt(LocalDateTime.now().plusHours(24));
         apiKey = apiKeyRepository.save(apiKey);
 
+
+        apiKeyCache.evict(apiKey.getKeyId());
         return new ApiKeyCreateResponseDto(apiKey.getId(), apiKey.getKeyId(),
                 newRawSecret, apiKey.getEnvironment());
     }
