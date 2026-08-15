@@ -22,6 +22,7 @@ import com.goutam.razorpay.payment.statemachine.PaymentTransitionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -40,12 +41,15 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentTransitionService paymentTransitionService;
     private final OutboxEventPublisher eventPublisher;
 
-    @Transactional
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
     @Override
     public PaymentResponseDto initiate(UUID merchantId, PaymentInitRequestDto request) {
 
         OrderRecord order = orderRepository.findByIdAndMerchantId(request.orderId(), merchantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", request.orderId()));
+
+//        OrderRecord order = orderRepository.findByIdAndMerchantIdForUpdate(request.orderId(), merchantId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Order", request.orderId()));
 
         if(order.getOrderStatus() != OrderStatus.CREATED && order.getOrderStatus() != OrderStatus.ATTEMPTED) {
             throw new BusinessRuleViolationException("Order_Not_Payable","Order Can not Payable in status :"+order.getOrderStatus());
