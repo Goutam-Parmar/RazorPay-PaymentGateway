@@ -4,6 +4,7 @@ import com.goutam.razorpay.common.enums.OrderStatus;
 import com.goutam.razorpay.common.exception.BusinessRuleViolationException;
 import com.goutam.razorpay.common.exception.DuplicateResourceException;
 import com.goutam.razorpay.common.exception.ResourceNotFoundException;
+import com.goutam.razorpay.merchant.service.CustomerService;
 import com.goutam.razorpay.payment.dto.RequestDto.OrderRequestDto;
 import com.goutam.razorpay.payment.dto.ResponseDto.OrderResponseDto;
 import com.goutam.razorpay.payment.dto.ResponseDto.PaymentResponseDto;
@@ -34,6 +35,7 @@ public class OrderServiceImpl implements OrderService {
     private final PaymentRepository paymentRepository;
     private final PaymentMapper paymentMapper;
     private final OrderMapper orderMapper;
+    private final CustomerService customerService;
 
     @Value("${payment.order.default-order-expiry-minutes:30}")
     private int defaultOrderExpiryMinutes;
@@ -44,18 +46,27 @@ public class OrderServiceImpl implements OrderService {
         if(request.receipt()!=null && orderRepository.existsByMerchantIdAndReceipt(merchantId, request.receipt())){
             throw new DuplicateResourceException("ORDER_RECEIPT_DUPLICATE","Order with this receipt already exists for the merchant "+request.receipt());
         }
-
+        UUID customerId = null;
+        if (request.customer() != null) {
+            customerId = customerService.findOrCreate(merchantId,
+                    request.customer().email(),
+                    request.customer().name(),
+                    request.customer().phone()
+            );
+        }
         OrderRecord order = OrderRecord.builder()
                 .receipt(request.receipt())
                 .amount(request.amount())
                 .notes(request.notes())
-
                 .merchantId(merchantId)
+                .customerId(customerId)
                 .orderStatus(OrderStatus.CREATED)
-                .expiresAt(request.expiresAt() != null ? request.expiresAt() :
-                        LocalDateTime.now().plusMinutes(defaultOrderExpiryMinutes))
+                .expiresAt(
+                        request.expiresAt() != null
+                                ? request.expiresAt()
+                                : LocalDateTime.now().plusMinutes(defaultOrderExpiryMinutes)
+                )
                 .build();
-
         order = orderRepository.save(order);
         // TODO:        publish kafka event about order creation
 

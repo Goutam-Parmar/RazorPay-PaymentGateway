@@ -41,15 +41,15 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentTransitionService paymentTransitionService;
     private final OutboxEventPublisher eventPublisher;
 
-    @Transactional(isolation = Isolation.REPEATABLE_READ)
+    @Transactional
     @Override
     public PaymentResponseDto initiate(UUID merchantId, PaymentInitRequestDto request) {
 
-        OrderRecord order = orderRepository.findByIdAndMerchantId(request.orderId(), merchantId)
-                .orElseThrow(() -> new ResourceNotFoundException("Order", request.orderId()));
-
-//        OrderRecord order = orderRepository.findByIdAndMerchantIdForUpdate(request.orderId(), merchantId)
+//        OrderRecord order = orderRepository.findByIdAndMerchantId(request.orderId(), merchantId)
 //                .orElseThrow(() -> new ResourceNotFoundException("Order", request.orderId()));
+
+        OrderRecord order = orderRepository.findByIdAndMerchantIdForUpdate(request.orderId(), merchantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order", request.orderId()));
 
         if(order.getOrderStatus() != OrderStatus.CREATED && order.getOrderStatus() != OrderStatus.ATTEMPTED) {
             throw new BusinessRuleViolationException("Order_Not_Payable","Order Can not Payable in status :"+order.getOrderStatus());
@@ -103,13 +103,19 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Transactional
     public PaymentResponseDto capture(UUID merchantId, UUID paymentId) {
 
-        Payment payment = paymentRepository.findByIdAndMerchantId(paymentId, merchantId)
+//        Payment payment = paymentRepository.findByIdAndMerchantId(paymentId, merchantId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId));
+//
+
+        Payment payment = paymentRepository.findByIdAndMerchantIdForUpdate(paymentId, merchantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId));
 
 
- paymentTransitionService .apply(payment, PaymentEvent.CAPTURE_REQUEST);
+
+        paymentTransitionService .apply(payment, PaymentEvent.CAPTURE_REQUEST);
         PaymentResultDto paymentResult = paymentGatewayRouter.capture(payment.getMethod(),paymentId);
 
         if(paymentResult instanceof PaymentResultDto.Success success) {

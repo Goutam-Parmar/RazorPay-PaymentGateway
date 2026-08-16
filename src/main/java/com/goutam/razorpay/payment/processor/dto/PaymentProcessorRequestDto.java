@@ -24,6 +24,7 @@ public record PaymentProcessorRequestDto (
                 pan, expiry, details);
 
     }
+
     public static PaymentProcessorRequestDto nonCard (UUID paymentId , PaymentMethod method ,  Money amount, Map<String, Object> details){
         return new PaymentProcessorRequestDto(UUID.randomUUID(), paymentId
                 ,method, amount,null,null, details);
