@@ -22,6 +22,7 @@ import com.goutam.razorpay.payment.statemachine.PaymentTransitionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -44,7 +45,10 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentResponseDto initiate(UUID merchantId, PaymentInitRequestDto request) {
 
-        OrderRecord order = orderRepository.findByIdAndMerchantId(request.orderId(), merchantId)
+//        OrderRecord order = orderRepository.findByIdAndMerchantId(request.orderId(), merchantId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Order", request.orderId()));
+
+        OrderRecord order = orderRepository.findByIdAndMerchantIdForUpdate(request.orderId(), merchantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order", request.orderId()));
 
         if(order.getOrderStatus() != OrderStatus.CREATED && order.getOrderStatus() != OrderStatus.ATTEMPTED) {
@@ -99,13 +103,19 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Transactional
     public PaymentResponseDto capture(UUID merchantId, UUID paymentId) {
 
-        Payment payment = paymentRepository.findByIdAndMerchantId(paymentId, merchantId)
+//        Payment payment = paymentRepository.findByIdAndMerchantId(paymentId, merchantId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId));
+//
+
+        Payment payment = paymentRepository.findByIdAndMerchantIdForUpdate(paymentId, merchantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment", paymentId));
 
 
- paymentTransitionService .apply(payment, PaymentEvent.CAPTURE_REQUEST);
+
+        paymentTransitionService .apply(payment, PaymentEvent.CAPTURE_REQUEST);
         PaymentResultDto paymentResult = paymentGatewayRouter.capture(payment.getMethod(),paymentId);
 
         if(paymentResult instanceof PaymentResultDto.Success success) {
