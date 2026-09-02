@@ -91,7 +91,7 @@ public class WebhookKafkaConsumer {
             log.error("Webhook consumer failed due to DB down, Could not process the record, offset: {}", record.offset(), dbDown);
         } catch (Exception logicError) {
             log.error("Webhook consumer failed due to logical error, Could not process the record, offset: {}", record.offset(), logicError);
-           // dlqRecorder.recordConsumerFailed(record, logicError.getMessage());
+            dlqRecorder.recordConsumerFailed(record, logicError.getMessage());
             ack.acknowledge();
         }
     }

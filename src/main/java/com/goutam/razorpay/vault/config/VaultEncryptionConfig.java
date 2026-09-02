@@ -15,11 +15,10 @@ import java.util.Base64;
 
 @Configuration
 public class VaultEncryptionConfig {
-    @Value("${vault.master-key}")
-    private String masterKey;
+
 
     public static BytesEncryptor panEncryptor(byte [] dek){
-        SecretKeySpec decKey = new SecretKeySpec(dek, "AES");
+        SecretKeySpec decKey = new SecretKeySpec(dek, "AES/gcm/NoPadding");
         return new AesBytesEncryptor(decKey , KeyGenerators.secureRandom(12),
                 AesBytesEncryptor.CipherAlgorithm.GCM);
     }
