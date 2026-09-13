@@ -4,12 +4,18 @@ import com.goutam.razorpay.common.entity.BaseEntity;
 import com.goutam.razorpay.common.entity.Money;
 import com.goutam.razorpay.common.enums.SettlementStatus;
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "settlement")
+@Builder
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class Settlement extends BaseEntity {
 
 
@@ -63,5 +69,6 @@ public class Settlement extends BaseEntity {
     private String bankReference;
 
     private LocalDateTime processedAt;
+    private String failureReason;
 
 }
