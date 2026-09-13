@@ -2,10 +2,17 @@ package com.goutam.razorpay.operations.entity;
 
 import com.goutam.razorpay.common.entity.BaseEntity;
 import jakarta.persistence.Embeddable;
+import lombok.*;
 
 import java.util.UUID;
 
 @Embeddable
+@Builder
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@EqualsAndHashCode
 public class SettlementPaymentId  {
 
 
